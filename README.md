@@ -192,7 +192,7 @@ urllib3.disable_warnings()
 
 url = "http://flag-shop.hsctf.com/api/search"
 headers={'content-type': 'application/json'}
-flag = "flag{hsctf_gacha_game_when?}"
+flag = "flag{"
 search = f"kj'); this.flag.includes('{flag}') && this.challenge.includes('flag"
 
 
@@ -259,7 +259,7 @@ if c not in ['*','+','.','?','|','&','$', '"', "'", "\\", "|", "/"]
 ```
 is used to exclude characters that can cause problems with the payload string or the server, while the ```try/except``` is used to avoid losing progress in case of an error.
 
-t was also very useful during the competition because CTRL-C moves on to the next character instead of closing the program. 
+It was also very useful during the competition because CTRL-C moves on to the next character instead of closing the program. 
 
 This way, in case the program got stuck (which happened about ten times during the competition, but not at all when I tried it on the post-competition infrastructure), I would only skip one character instead of having to start over and retrieve the last characters manually.
 
