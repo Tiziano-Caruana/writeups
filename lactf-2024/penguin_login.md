@@ -7,7 +7,7 @@
 
 ## Context
 We are provided with the link to the challenge website and the corresponding source code. The website is quite simple, and the usage of its features is straightforward:
-![website home page](/writeup/img/website.png)
+![website home page](img/website.png)
 
 All the code is in `app.py`:
 
@@ -83,9 +83,9 @@ The code is straightforward: the first half deals only with connections and setu
 ## The ideal thought process
 A quick analysis of the code can already tell us everything we need to know, but why not play around with the only input available on the site?
 
-![code 200 example](/writeup/vid/code200.gif)
+![code 200 example](vid/code200.gif)
 
-![code 201 example](/writeup/vid/code201.gif)
+![code 201 example](vid/code201.gif)
 
 We can thus see the differences in response depending on the input. If a penguin is found, a [status code](https://developer.mozilla.org/en-US/docs/Web/HTTP/Status) is returned, while if nothing is found, we get a 201. 
 
@@ -100,7 +100,7 @@ Nice thinking, the problem is that the equal sign is not whitelisted. We can't e
 
 In SQL, we can indicate boolean values with 0 and 1, and this applies even if they are strings. So, just like `' OR 1` returns `TRUE`, so does `' OR '1`.
 
-![First injection test](/writeup/vid/injTest.gif)
+![First injection test](vid/injTest.gif)
 
 It works! Now we just have to adjust the injection in order to exfiltrate the flag.
 
@@ -118,7 +118,7 @@ In the line `"SELECT * FROM penguins WHERE name = '%s'" % username`, our input i
 SELECT * FROM penguins WHERE name = '' OR '1'
 ```
 
-![Example of the just presented "technique"](/writeup/vid/PlayTest.gif)
+![Example of the just presented "technique"](vid/PlayTest.gif)
 
 Make sure not to use the mouse or arrow keys (in other words, don't move the cursor) while you're testing your inputs ;)
 
@@ -127,7 +127,7 @@ Instead of blindly using a command/trick/workaround/technique that you see for t
 
 There are services (like [OneCompiler](https://onecompiler.com/postgresql/), that allow you to execute code directly online. Always make sure 100% when using these services that you have selected the right DBMS.
 
-![Example of using OneCompiler to verify the result of an unconventional query](/writeup/img/OnlineExample.png)
+![Example of using OneCompiler to verify the result of an unconventional query](img/OnlineExample.png)
 
 ##### Proceed in phases
 It's helpful to reason in phases the first few times. In mathematics, we can start skipping steps during calculations, but only because we've become familiar enough:
@@ -197,11 +197,11 @@ while True:
 
 Due to infrastructure issues, the first character of the flag couldn't be retrieved. I had to guess it (in quite a few attempts xd)
 
-![Execution of the final script](/writeup/vid/FinalPayload.gif)
+![Execution of the final script](vid/FinalPayload.gif)
 
 `lactf{90stgr35_3s_n0t_l7k3_th3_0th3r_dbs_0w0}`
 
-![Extract from an interesting conversation had in a ticket](/writeup/img/InterestingTicket.png)
+![Extract from an interesting conversation had in a ticket](img/InterestingTicket.png)
 
 ### How it actually went during the CTF
 
@@ -267,4 +267,7 @@ while True:
 
 I was too lazy to press F12 while playing around, so I just based my final payload on the `"We found a penguin!!!!!"` response.
 
-![Ranting in Italian](/writeup/img/ItalianRant.png)
+![Ranting in Italian](img/ItalianRant.png)
+
+## Feedback
+I'm open to questions, feedbacks, and DMs in general! @titto_caru on Discord

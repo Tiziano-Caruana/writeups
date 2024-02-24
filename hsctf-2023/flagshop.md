@@ -10,7 +10,8 @@
 
 We are provided with the link to the website and its corresponding source code.
 The website appears to be very simple, and the source code is quite short:
-<img class="img-responsive" src="{{ site-url }}/assets/hsctf2023/FlagShopHome.png">
+
+![Flag Shop home](img/FlagShopHome.png)
 
 Content of ```app.py```:
 ```python
@@ -161,18 +162,23 @@ With ```');``` we escaped the string and closed the statement, giving us an <a h
 
 By testing or reading the documentation, we can discover that this happens because only the last valid condition is computed by the $where clause. This means that we can write anything in the first ```include```, since it won't be interpreted (```something'); this.challenge.includes('```):
 
-<img class="img-responsive" src="{{ site-url }}/assets/hsctf2023/burp1.png">
+![First Burp attempt](img/burp1.png)
 
 While the second one is interpreted (```something'); this.challenge.includes('search```):
-<img class="img-responsive" src="{{ site-url }}/assets/hsctf2023/burp2.png">
+
+![Second Burp attempt](img/burp2.png)
 
 So we have the vulnerability, but we cannot directly retrieve the flag since it is excluded from the query (if you're not sure, please reread the source code).
 I then tried a payload with a boolean operator (```something'); always_true() || this.challenge.includes('something```):
-<img class="img-responsive" src="{{ site-url }}/assets/hsctf2023/burp3.png">
+
+![Third Burp attempt](img/burp3.png)
 
 This is very useful for searching for a potential attack. We can perform a conditional check on the flag using ```&& this.challenge.includes('flag')``` to only get results from the ```flag-shop``` entity. We can do a first test with the flag format (```something'); this.flag.includes('flag{') && this.challenge.includes('flag```):
-<img class="img-responsive" src="{{ site-url }}/assets/hsctf2023/FirstBlind.png">
-<img class="img-responsive" src="{{ site-url }}/assets/hsctf2023/BlindNotWorking.png">
+
+![Example of working blind query](img/FirstBlind.png)
+
+![Example of blind query not working](img/BlindNotWorking.png)
+
 
 We will have to take advantage of this behavior, performing a small brute force to reconstruct the flag character by character. We can now start to construct our payload.
 
