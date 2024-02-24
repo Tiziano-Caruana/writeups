@@ -104,7 +104,7 @@ In SQL, we can indicate boolean values with 0 and 1, and this applies even if th
 
 It works! Now we just have to adjust the injection in order to exfiltrate the flag.
 
-But there's no way to use `LIKE` (I'm not completely sure about this one, but I did not use it). Searching on the internet for *LIKE alternative in postgreSQL*, among the top results, I found sections [6.6](https://www.postgresql.org/docs/7.3/functions-matching.html#:~:text=6.6.%20Pattern%20Matching) and [9.7](https://www.postgresql.org/docs/current/functions-matching.html#FUNCTIONS-MATCHING) of the documentation, both concerning pattern matching. In these parts of the documentation, an alternative to the `LIKE` statement is indicated, namely `SIMILAR TO`, which differs from the former only in the interpretation of RegEx. For our purposes, there is no difference.
+But there's no way to use `LIKE` (I'm not completely sure about this one, but I did not use it. P.S. Yeah, it wasn't intended to use LIKE by bypassing the blacklist). Searching on the internet for *LIKE alternative in postgreSQL*, among the top results, I found sections [6.6](https://www.postgresql.org/docs/7.3/functions-matching.html#:~:text=6.6.%20Pattern%20Matching) and [9.7](https://www.postgresql.org/docs/current/functions-matching.html#FUNCTIONS-MATCHING) of the documentation, both concerning pattern matching. In these parts of the documentation, an alternative to the `LIKE` statement is indicated, namely `SIMILAR TO`, which differs from the former only in the interpretation of RegEx. For our purposes, there is no difference.
 
 At this point, we have practically won, and all that's left is to build the payload and the corresponding script. Probably SQLmap already had something available for the occasion, but I don't really care.
 
@@ -195,7 +195,7 @@ while True:
         print("skipping: ", payload)
 ```
 
-Due to infrastructure issues, the first character of the flag couldn't be retrieved. I had to guess it (in quite a few attempts xd)
+Due to infrastructure issues, the first character of the flag couldn't be retrieved. I had to guess it (in quite a few attempts xd). P.S. It seems like there was a way to exfiltrate the first character of the flag. I'll act like I didn't see that.
 
 ![Execution of the final script](vid/FinalPayload.gif)
 
