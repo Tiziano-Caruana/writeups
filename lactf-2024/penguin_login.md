@@ -106,7 +106,7 @@ It works! Now we just have to adjust the injection in order to exfiltrate the fl
 
 But there's no way to use `LIKE` (I'm not completely sure about this one, but I did not use it). Searching on the internet for *LIKE alternative in postgreSQL*, among the top results, I found sections [6.6](https://www.postgresql.org/docs/7.3/functions-matching.html#:~:text=6.6.%20Pattern%20Matching) and [9.7](https://www.postgresql.org/docs/current/functions-matching.html#FUNCTIONS-MATCHING) of the documentation, both concerning pattern matching. In these parts of the documentation, an alternative to the `LIKE` statement is indicated, namely `SIMILAR TO`, which differs from the former only in the interpretation of RegEx. For our purposes, there is no difference.
 
-At this point, we have practically won, and all that's left is to build the payload and the corresponding script. Probably SQLmap already had some shit available for the occasion, but I don't really care.
+At this point, we have practically won, and all that's left is to build the payload and the corresponding script. Probably SQLmap already had something available for the occasion, but I don't really care.
 
 #### Tips for beginners
 At this point, for a player with a decent level of experience, the challenge is already solved. However, if it's one of the first times solving a SQLi UNION-based challenge, it's possible to take a few extra intermediate steps to make it clearer what is being executed by the DBMS and how the payload should be constructed.
