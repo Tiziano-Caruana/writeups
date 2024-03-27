@@ -8,9 +8,9 @@
 ## Contesto
 Viene fornito il link al sito della challenge ed il corrispettivo codice sorgente. A primo impatto il sito può risultare un po' overwhelming: sono presenti diverse funzionalità, il che significa diversi endpoint e meccanismi da studiare alla ricerca di vulnerabilità.
 
-In realtà, per fortuna il codice è relativamente breve e poco verboso, e tutti i file fatta eccezione per il `server.js` non contengono elementi interessanti: `products.js` raccoglie informazioni sui prodotti, mentre i vari [template](https://en.wikipedia.org/wiki/Template_processor) sembrano mostrare in output soltanto elementi passati dal server. Possiamo tenere a mente la loro presenza, ma l'esistenza di una [Server Side Template Injection](https://portswigger.net/web-security/server-side-template-injection) è momentaneamente scongiurata.
+In realtà, per fortuna il codice è relativamente breve e poco verboso, e tutti i file fatta eccezione per il `server.js` non contengono elementi interessanti: `products.js` raccoglie informazioni sui prodotti, mentre i vari [template](https://en.wikipedia.org/wiki/Template_processor) sembrano mostrare in output soltanto elementi passati dal server. Si può tenere a mente la loro presenza, ma l'esistenza di una [Server Side Template Injection](https://portswigger.net/web-security/server-side-template-injection) è momentaneamente scongiurata.
 
-Ancora prima della dichiarazione degli endpoint, possiamo vedere il seguente codice all'inizio di `server.js`:
+Ancora prima della dichiarazione degli endpoint, si può vedere il seguente codice all'inizio di `server.js`:
 ```js
 const express = require('express');
 const crypto = require('crypto');
@@ -588,5 +588,3 @@ Ricapitolando:
 Chiunque sia riuscito nell'impresa di arrivare a leggere fino a qui, grazie di cuore ❤️
 
 Per qualsiasi feedback, mi potete contattare su Discord: `titto_caru`
-
-![Letteralmente io](https://i.pinimg.com/474x/ca/fa/f8/cafaf8eedcafcfc74fd571d4763e96c7.jpg)
